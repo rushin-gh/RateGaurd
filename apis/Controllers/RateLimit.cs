@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.ComponentModel.DataAnnotations;
 
 namespace apis.Controllers
 {
@@ -8,9 +9,9 @@ namespace apis.Controllers
     public class RateLimit : ControllerBase
     {
         [HttpGet("~/api/test")]
-        public IActionResult Test()
+        public IActionResult Test([Required] int userId)
         {
-            return Ok("API working");
+            return Ok($"API working {userId}");
         }
     }
 }
