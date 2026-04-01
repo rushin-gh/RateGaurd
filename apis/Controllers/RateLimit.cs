@@ -1,5 +1,7 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using apis.Model;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using System.Collections.Concurrent;
 using System.ComponentModel.DataAnnotations;
 
@@ -9,23 +11,33 @@ namespace apis.Controllers
     [ApiController]
     public class RateLimit : ControllerBase
     {
-        static ConcurrentDictionary<int, (List<DateTime> TimeStamps, object Lock)> userRequests = new();
+        private readonly ILogger<RateLimit> _logger;
 
+        static readonly ConcurrentDictionary<int, UserRateLimitEntry> userRequests = new();
+
+        private readonly int _timeInSeconds;
+        private readonly int _requestsAllowed;
+
+        public RateLimit(IOptions<RetryWindowSettings> retryOptions, ILogger<RateLimit> logger)
+        {
+            _timeInSeconds = retryOptions.Value.TimeInSeconds;
+            _requestsAllowed = retryOptions.Value.RequestsAllowed;
+            _logger = logger;
+        }
 
         [HttpGet("~/api/test")]
         public IActionResult Test([Required] int userId)
         {
-            var entry = userRequests.GetOrAdd(userId, _ => (new List<DateTime>(), new object()));
+            var entry = userRequests.GetOrAdd(userId, _ => new UserRateLimitEntry());
             lock (entry.Lock)
             {
-                var cutoff = DateTime.UtcNow.AddMinutes(-1);
+                var cutoff = DateTime.UtcNow.AddSeconds(-_timeInSeconds);
 
                 // Clean up old timestamps (fixes memory leak too)
                 entry.TimeStamps.RemoveAll(d => d < cutoff);
-
-                if (entry.TimeStamps.Count >= 5)
+                if (entry.TimeStamps.Count >= _requestsAllowed)
                 {
-                    Response.Headers["Retry-After"] = "60";
+                    Response.Headers["Retry-After"] = _timeInSeconds.ToString();
                     return StatusCode(429);
                 }
 
@@ -33,42 +45,6 @@ namespace apis.Controllers
             }
 
             return Ok($"API working {userId}");
-
-
-            //if (userRequests.ContainsKey(userId))
-            //    userRequests[userId].RemoveAll(item => item < DateTime.Now.AddMinutes(-1));
-
-            //int reqCnt = 0;
-            //if (userRequests.ContainsKey(userId))
-            //{
-            //    reqCnt = userRequests[userId].Count();   
-            //}
-
-            //if (reqCnt >= 5)
-            //{
-            //    return StatusCode(429);
-            //}
-
-            //if (userRequests.ContainsKey(userId))
-            //{
-            //    userRequests[userId].Add(DateTime.Now);      
-            //} 
-            //else
-            //{
-            //    userRequests.Add(userId, new List<DateTime>() { DateTime.Now });
-            //}
-
-            ////foreach (var item in userRequests)
-            ////{
-            ////    Console.WriteLine($"User  {item.Key}");
-            ////    foreach(var litem in item.Value)
-            ////    {
-            ////        Console.WriteLine(litem);
-            ////    }
-            ////}
-            ////Console.WriteLine();
-
-            //return Ok($"API working {userId}");
         }
     }
 }
