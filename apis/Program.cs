@@ -1,3 +1,5 @@
+using apis.Business;
+using apis.Contracts;
 using apis.Model;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -11,6 +13,8 @@ builder.Services.AddSwaggerGen();
 builder.Services.Configure<RetryWindowSettings>(
     builder.Configuration.GetSection("RetryWindow")
 );
+
+builder.Services.AddSingleton<IRateLimitService, RateLimitService>();
 
 var app = builder.Build();
 

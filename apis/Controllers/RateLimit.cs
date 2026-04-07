@@ -1,4 +1,5 @@
-﻿using apis.Model;
+﻿using apis.Contracts;
+using apis.Model;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
@@ -11,41 +12,21 @@ namespace apis.Controllers
     [ApiController]
     public class RateLimit : ControllerBase
     {
-        private readonly ILogger<RateLimit> _logger;
+        private readonly IRateLimitService rateLimitService;
 
-        static readonly ConcurrentDictionary<int, UserRateLimitEntry> userRequests = new();
-
-        private readonly int _timeInSeconds;
-        private readonly int _requestsAllowed;
-
-        public RateLimit(IOptions<RetryWindowSettings> retryOptions, ILogger<RateLimit> logger)
+        public RateLimit(IRateLimitService rateLimitService)
         {
-            _timeInSeconds = retryOptions.Value.TimeInSeconds;
-            _requestsAllowed = retryOptions.Value.RequestsAllowed;
-            _logger = logger;
+            this.rateLimitService = rateLimitService;
         }
 
         [HttpGet("~/api/test")]
         public IActionResult Test([Required] int userId)
         {
-            var entry = userRequests.GetOrAdd(userId, _ => new UserRateLimitEntry());
-            lock (entry.Lock)
+            var limitResult = rateLimitService.GetRateLimitResult(userId);
+            if (!limitResult.IsAllowed)
             {
-                var cutoff = DateTime.UtcNow.AddSeconds(-_timeInSeconds);
-
-                // Clean up old timestamps (fixes memory leak too)
-                while (entry.TimeStamps.Count > 0 && entry.TimeStamps.Peek() < cutoff)
-                {
-                    entry.TimeStamps.Dequeue();
-                }
-
-                if (entry.TimeStamps.Count >= _requestsAllowed)
-                {
-                    Response.Headers["Retry-After"] = _timeInSeconds.ToString();
-                    return StatusCode(429);
-                }
-
-                entry.TimeStamps.Enqueue(DateTime.UtcNow);
+                Response.Headers["Retry-After"] = limitResult.TimesInSeconds.ToString();
+                return StatusCode(429, $"Too much requests for {userId}");
             }
 
             return Ok($"API working {userId}");
