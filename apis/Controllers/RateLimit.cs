@@ -34,14 +34,18 @@ namespace apis.Controllers
                 var cutoff = DateTime.UtcNow.AddSeconds(-_timeInSeconds);
 
                 // Clean up old timestamps (fixes memory leak too)
-                entry.TimeStamps.RemoveAll(d => d < cutoff);
+                while (entry.TimeStamps.Count > 0 && entry.TimeStamps.Peek() < cutoff)
+                {
+                    entry.TimeStamps.Dequeue();
+                }
+
                 if (entry.TimeStamps.Count >= _requestsAllowed)
                 {
                     Response.Headers["Retry-After"] = _timeInSeconds.ToString();
                     return StatusCode(429);
                 }
 
-                entry.TimeStamps.Add(DateTime.UtcNow);
+                entry.TimeStamps.Enqueue(DateTime.UtcNow);
             }
 
             return Ok($"API working {userId}");

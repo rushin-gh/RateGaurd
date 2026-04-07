@@ -2,7 +2,8 @@
 {
     public class UserRateLimitEntry
     {
-        public List<DateTime> TimeStamps { get; } = new();
+        public Queue<DateTime> TimeStamps { get; } = new();
+
         public object Lock { get; } = new();
     }
 }
