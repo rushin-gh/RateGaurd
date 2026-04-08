@@ -22,13 +22,6 @@ namespace apis.Controllers
         [HttpGet("~/api/test")]
         public IActionResult Test([Required] int userId)
         {
-            var limitResult = rateLimitService.GetRateLimitResult(userId);
-            if (!limitResult.IsAllowed)
-            {
-                Response.Headers["Retry-After"] = limitResult.TimesInSeconds.ToString();
-                return StatusCode(429, $"Too much requests for {userId}");
-            }
-
             return Ok($"API working {userId}");
         }
     }

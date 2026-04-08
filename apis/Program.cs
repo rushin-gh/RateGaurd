@@ -1,5 +1,6 @@
 using apis.Business;
 using apis.Contracts;
+using apis.Middleware;
 using apis.Model;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -28,7 +29,7 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.UseAuthorization();
-
+app.UseMiddleware<RateLimitMiddleware>();
 app.MapControllers();
 
 app.Run();
