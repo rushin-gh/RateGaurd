@@ -13,21 +13,16 @@ namespace apis.Middleware
 
         public async Task InvokeAsync(HttpContext httpContext, IRateLimitService rateLimitService)
         {
-            if (!TryGetUserId(httpContext, out int userId))
+            if (TryGetUserId(httpContext, out int userId))
             {
-                httpContext.Response.StatusCode = StatusCodes.Status400BadRequest;
-                await httpContext.Response.WriteAsync("Missing or invalid user identifier.");
-                return;
-            }
-
-            var result = rateLimitService.GetRateLimitResult(userId);
-
-            if (!result.IsAllowed)
-            {
-                httpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
-                httpContext.Response.Headers["Retry-After"] = Convert.ToString(result.TimesInSeconds);
-                await httpContext.Response.WriteAsync($"Too many requests for {userId}.");
-                return;
+                var result = rateLimitService.GetRateLimitResult(userId);
+                if (!result.IsAllowed)
+                {
+                    httpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+                    httpContext.Response.Headers["Retry-After"] = Convert.ToString(result.TimesInSeconds);
+                    await httpContext.Response.WriteAsync($"Too many requests for {userId}.");
+                    return;
+                }
             }
 
             await _next(httpContext);
