@@ -2,6 +2,7 @@ using apis.Business;
 using apis.Contracts;
 using apis.Middleware;
 using apis.Model;
+using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,6 +17,9 @@ builder.Services.Configure<RetryWindowSettings>(
 );
 
 builder.Services.AddSingleton<IRateLimitService, RateLimitService>();
+builder.Services.AddSingleton<IConnectionMultiplexer>(
+    ConnectionMultiplexer.Connect("localhost:6379")
+);
 
 var app = builder.Build();
 
