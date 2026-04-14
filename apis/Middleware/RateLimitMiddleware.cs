@@ -13,17 +13,17 @@ namespace apis.Middleware
 
         public async Task InvokeAsync(HttpContext httpContext, IRateLimitService rateLimitService)
         {
-            if (TryGetUserId(httpContext, out int userId))
-            {
-                var result = rateLimitService.GetRateLimitResult(userId);
-                if (!result.IsAllowed)
-                {
-                    httpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
-                    httpContext.Response.Headers["Retry-After"] = Convert.ToString(result.TimesInSeconds);
-                    await httpContext.Response.WriteAsync($"Too many requests for {userId}.");
-                    return;
-                }
-            }
+            //if (TryGetUserId(httpContext, out int userId))
+            //{
+            //    var result = rateLimitService.GetRateLimitResult(userId);
+            //    if (!result.IsAllowed)
+            //    {
+            //        httpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+            //        httpContext.Response.Headers["Retry-After"] = Convert.ToString(result.TimesInSeconds);
+            //        await httpContext.Response.WriteAsync($"Too many requests for {userId}.");
+            //        return;
+            //    }
+            //}
 
             await _next(httpContext);
         }

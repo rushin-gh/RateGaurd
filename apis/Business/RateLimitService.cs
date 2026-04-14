@@ -13,7 +13,7 @@ namespace apis.Business
         private readonly int _timeInSeconds;
         private readonly int _requestsAllowed;
 
-        public RateLimitService(IOptions<RetryWindowSettings> retryOptions, ILogger<RateLimit> logger)
+        public RateLimitService(IOptions<RetryWindowSettings> retryOptions, ILogger<RateLimitController> logger)
         {
             _timeInSeconds = retryOptions.Value.TimeInSeconds;
             _requestsAllowed = retryOptions.Value.RequestsAllowed;
