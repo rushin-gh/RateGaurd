@@ -33,7 +33,8 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.UseAuthorization();
-app.UseMiddleware<RateLimitMiddleware>();
+//app.UseMiddleware<RateLimitMiddleware>();
+app.UseMiddleware<RedisRateLimitMiddleware>();
 app.MapControllers();
 
 app.Run();

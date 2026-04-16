@@ -24,9 +24,9 @@ namespace apis.Controllers
         }
 
         [HttpGet("~/api/test")]
-        public async Task<IActionResult> Test([Required] int userId)
+        public async Task<IActionResult> Test()
         {
-            var key = $"RATE:{userId}";
+            var key = $"RATE:";
             var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
             var result = (int)await _redisDb.ScriptEvaluateAsync(
@@ -41,16 +41,6 @@ namespace apis.Controllers
                 Response.Headers["Retry-After"] = ((int)ttl?.TotalSeconds).ToString();
                 return StatusCode(429);
             }
-
-            // Get current count
-            //var count = await _redisDb.StringGetAsync(key);
-            //int currentCount = count.HasValue ? (int)count : 0;
-
-            //if (currentCount >= 5)
-            //{
-            //    Response.Headers["Retry-After"] = "30";
-            //    return StatusCode(429);
-            //}
 
             return Ok($"API working. Count: {result}/{retryWindowSettings.RequestsAllowed}");
         }
