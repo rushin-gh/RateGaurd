@@ -16,7 +16,7 @@
             local count = redis.call('ZCARD', key)
 
             if count >= limit then
-                return -1  -- blocked
+                return {count, limit}  -- blocked, but still return limit
             end
 
             -- Add current request with timestamp as score
@@ -25,7 +25,7 @@
             -- Set expiry so key auto-cleans
             redis.call('EXPIRE', key, window)
 
-            return count + 1
+            return {count + 1, limit}  -- ✅ returns tuple of (current count, limit)
         ";
     }
 }

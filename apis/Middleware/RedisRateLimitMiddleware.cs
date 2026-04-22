@@ -28,21 +28,31 @@ namespace apis.Middleware
                 var key = string.Format("RATE:{0}", userId);
                 var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
-                var result = (int)await _redisDb.ScriptEvaluateAsync(
+                var result = (RedisResult[])await _redisDb.ScriptEvaluateAsync(
                     RateLimitScripts.RateLimitScript,
                     keys: [key],
                     values: [now, _retryWindowSettings.TimeInSeconds * 1000, _retryWindowSettings.RequestsAllowed]
                 );
 
-                if (result == -1)
+                var hitCount = (int)result[0];
+                var hitLimit = (int)result[1];
+
+                if (hitCount >= hitLimit)
                 {
                     var ttl = await _redisDb.KeyTimeToLiveAsync(key);
                     httpContext.Response.Headers["Retry-After"] = ((int)ttl?.TotalSeconds).ToString();
-                    httpContext.Response.StatusCode = StatusCodes.Status400BadRequest;
+                    httpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
                     await httpContext.Response.WriteAsync("Bhag sale");
                 }
                 else
                 {
+                    httpContext.Response.OnStarting(() =>
+                    {
+                        httpContext.Response.Headers["X-RateLimit-Limit"] = hitLimit.ToString();
+                        httpContext.Response.Headers["X-RateLimit-Remaining"] = (hitLimit - hitCount).ToString();
+                        return Task.CompletedTask;
+                    });
+
                     await _next(httpContext);
                 }
             }
